@@ -1,11 +1,11 @@
 import path from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { build } from 'esbuild'
+import { objectPick } from '@antfu/utils'
 
 export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
   let config: ResolvedConfig
   let entriesMap: Map<string, PrebundleEntryData>
-  const entries = normalizeEntries(options.entries)
 
   return {
     name: 'vite-plugin-prebundle',
@@ -13,7 +13,9 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       config = _config
     },
     buildStart() {
-      entriesMap = new Map(entries.map((entry) => {
+      const defaults = objectPick(options, ['bundler', 'persistentCache', 'bundleDependencies'])
+      entriesMap = new Map(options.entries.map((i) => {
+        const entry = normalizeEntry(i, defaults)
         const resolved = path.resolve(config.root, entry.filepath)
         return [resolved, { options: entry, resolvedFilepath: resolved }] as const
       }))
@@ -34,6 +36,7 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       const data = entriesMap.get(id)!
       const {
         bundler = 'esbuild',
+        bundleDependencies = false,
       } = data.options
 
       // TODO: cache
@@ -49,7 +52,7 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
         bundle: true,
         metafile: true,
         sourceRoot: config.root,
-        // TODO: we should externalize deps, as they should be handled by Vite
+        packages: bundleDependencies ? undefined : 'external',
       })
 
       const code = result.outputFiles[0].text
@@ -69,29 +72,48 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
   }
 }
 
-function normalizeEntries(entries: (PrebundleEntryOptions | string)[]): PrebundleEntryOptions[] {
-  return entries.map((entry) => {
-    if (typeof entry === 'string')
-      return { filepath: entry }
-    return entry
-  })
+function normalizeEntry(entry: PrebundleEntryOptions | string, defaults?: Partial<PrebundleEntryOptions>): PrebundleEntryOptions {
+  return {
+    ...defaults,
+    ...(typeof entry === 'string'
+      ? { filepath: entry }
+      : entry
+    ),
+  }
 }
 
-export interface PrebundleOptions {
+export interface PrebundleOptions extends CommonPrebundleEntryOptions {
   entries: (PrebundleEntryOptions | string)[]
 }
 
-export interface PrebundleEntryOptions {
-  filepath: string
+export interface CommonPrebundleEntryOptions {
   /**
+   * The bundler used to bundle the entries.
+   *
    * @default 'esbuild'
    * @todo
    */
   bundler?: 'esbuild' | 'vite'
+
   /**
+   * Persistent cache store in the file system.
    * @todo
    */
-  cache?: boolean
+  persistentCache?: boolean
+
+  /**
+   * Prebundle also the dependencies of the entry.
+   *
+   * @default false
+   */
+  bundleDependencies?: boolean
+}
+
+export interface PrebundleEntryOptions extends CommonPrebundleEntryOptions {
+  /**
+   * The entry file path.
+   */
+  filepath: string
 }
 
 export interface PrebundleEntryData {
