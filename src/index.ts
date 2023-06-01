@@ -1,4 +1,4 @@
-import path from 'node:path'
+import path, { sep } from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { objectPick } from '@antfu/utils'
 import type { Bundler, PrebundleEntryData, PrebundleEntryOptions, PrebundleOptions } from './types'
@@ -19,7 +19,7 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       const defaults = objectPick(options, ['bundler', 'persistentCache', 'bundleDependencies'])
       entriesMap = new Map(options.entries.map((i) => {
         const entry = normalizeEntry(i, defaults)
-        const resolved = path.resolve(config.root, entry.filepath)
+        const resolved = normalizePath(path.resolve(config.root, entry.filepath))
         return [resolved, { options: entry, resolvedFilepath: resolved }] as const
       }))
     },
@@ -75,4 +75,7 @@ function normalizeEntry(entry: PrebundleEntryOptions | string, defaults?: Partia
       : entry
     ),
   }
+}
+function normalizePath(path: string) {
+  return path.split(sep).join('/')
 }
