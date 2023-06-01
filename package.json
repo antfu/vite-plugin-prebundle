@@ -52,7 +52,8 @@
     "vite": "^4.0.0"
   },
   "dependencies": {
-    "debug": "^4.3.4"
+    "debug": "^4.3.4",
+    "pathe": "^1.1.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.39.4",

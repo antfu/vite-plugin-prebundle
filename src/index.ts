@@ -1,5 +1,5 @@
-import path from 'node:path'
 import { Buffer } from 'node:buffer'
+import { normalize, resolve } from 'pathe'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { objectPick } from '@antfu/utils'
 import createDebug from 'debug'
@@ -25,15 +25,15 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       const defaults = objectPick(options, ['bundler', 'persistentCache', 'bundleDependencies'])
       entriesMap = new Map(options.entries.map((i) => {
         const entry = normalizeEntry(i, defaults)
-        const resolved = path.resolve(config.root, entry.filepath)
+        const resolved = resolve(config.root, entry.filepath)
         return [resolved, { options: entry, resolvedFilepath: resolved }] as const
       }))
     },
     handleHotUpdate(ctx) {
+      const filepath = normalize(ctx.file)
       const matched = Array.from(entriesMap.values())
-        .filter((data) => {
-          return data.cache?.bundledFiles?.includes(ctx.file)
-        })
+        .filter(data => data.cache?.bundledFiles?.includes(filepath))
+
       if (!matched.length)
         return
 

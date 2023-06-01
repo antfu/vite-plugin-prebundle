@@ -11,6 +11,9 @@ importers:
       debug:
         specifier: ^4.3.4
         version: 4.3.4
+      pathe:
+        specifier: ^1.1.0
+        version: 1.1.0
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^0.39.4
@@ -3730,7 +3733,6 @@ packages:
 
   /pathe@1.1.0:
     resolution: {integrity: sha512-ODbEPR0KKHqECXW1GoxdDb+AZvULmXjVPy4rt+pGo2+TnjJTIPJQSVS6N63n8T2Ip+syHhbn52OewKicV0373w==}
-    dev: true
 
   /pathval@1.1.1:
     resolution: {integrity: sha512-Dp6zGqpTdETdR63lehJYPeIOqpiNBNtc7BpWSLrOje7UaIsE5aY92r/AunQA7rsXvet3lrJ3JnZX29UPTKXyKQ==}
