@@ -41,6 +41,7 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
 
       // TODO: cache
 
+      // TODO: support vite/rollup/custom bundler
       if (bundler !== 'esbuild')
         throw new Error(`Bundler ${bundler} is not supported yet.`)
 
