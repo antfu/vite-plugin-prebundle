@@ -12,6 +12,8 @@
     "skipDefaultLibCheck": true
   },
   "exclude": [
-    "playground"
+    "playground",
+    "**/dist/**",
+    "**/node_modules/**"
   ]
 }

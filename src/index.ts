@@ -1,7 +1,10 @@
 import path from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
-import { build } from 'esbuild'
 import { objectPick } from '@antfu/utils'
+import type { Bundler, PrebundleEntryData, PrebundleEntryOptions, PrebundleOptions } from './types'
+import { SupportedBundlers } from './bundler'
+
+export * from './types'
 
 export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
   let config: ResolvedConfig
@@ -23,7 +26,7 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
     handleHotUpdate(ctx) {
       const matched = Array.from(entriesMap.values())
         .filter((data) => {
-          return data.inputs?.includes(ctx.file)
+          return data.cache?.bundledFiles?.includes(ctx.file)
         })
       if (!matched.length)
         return
@@ -36,39 +39,30 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       const data = entriesMap.get(id)!
       const {
         bundler = 'esbuild',
-        bundleDependencies = false,
       } = data.options
 
       // TODO: cache
 
-      // TODO: support vite/rollup/custom bundler
-      if (bundler !== 'esbuild')
+      if (typeof bundler !== 'function' && !(bundler in SupportedBundlers))
         throw new Error(`Bundler ${bundler} is not supported yet.`)
 
-      const result = await build({
-        ...config.optimizeDeps.esbuildOptions,
-        entryPoints: [id],
-        write: false,
-        format: 'esm',
-        bundle: true,
-        metafile: true,
-        sourceRoot: config.root,
-        packages: bundleDependencies ? undefined : 'external',
+      const bundlerFn: Bundler = typeof bundler === 'function'
+        ? bundler
+        : (SupportedBundlers as any)[bundler]
+
+      const result = await bundlerFn({
+        viteConfig: config,
+        options,
+        entry: data,
       })
 
-      const code = result.outputFiles[0].text
-
-      const inputs = Object.keys(result.metafile!.inputs)
-        .filter(i => !i.match(/[\/\\]node_modules[\/\\]/))
-        .map(i => path.resolve(config.root, i))
-
-      data.inputs = inputs
       data.cache = {
-        code,
+        ...result,
         time: Date.now(),
       }
 
-      return result.outputFiles[0].text
+      // TODO: sourcemap
+      return result.code
     },
   }
 }
@@ -81,50 +75,4 @@ function normalizeEntry(entry: PrebundleEntryOptions | string, defaults?: Partia
       : entry
     ),
   }
-}
-
-export interface PrebundleOptions extends CommonPrebundleEntryOptions {
-  entries: (PrebundleEntryOptions | string)[]
-}
-
-export interface CommonPrebundleEntryOptions {
-  /**
-   * The bundler used to bundle the entries.
-   *
-   * @default 'esbuild'
-   * @todo
-   */
-  bundler?: 'esbuild' | 'vite'
-
-  /**
-   * Persistent cache store in the file system.
-   * @todo
-   */
-  persistentCache?: boolean
-
-  /**
-   * Prebundle also the dependencies of the entry.
-   *
-   * @default false
-   */
-  bundleDependencies?: boolean
-}
-
-export interface PrebundleEntryOptions extends CommonPrebundleEntryOptions {
-  /**
-   * The entry file path.
-   */
-  filepath: string
-}
-
-export interface PrebundleEntryData {
-  resolvedFilepath: string
-  options: PrebundleEntryOptions
-  inputs?: string[]
-  cache?: PrebundleEntryCache
-}
-
-export interface PrebundleEntryCache {
-  code: string
-  time: number
 }
