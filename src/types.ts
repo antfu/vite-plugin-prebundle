@@ -9,15 +9,9 @@ export interface CommonPrebundleEntryOptions {
    * The bundler used to bundle the entries.
    *
    * @default 'esbuild'
-   * @todo
+   * @todo support rollup/vite bundler that reuses the existing plugins
    */
-  bundler?: 'esbuild' | 'vite' | Bundler
-
-  /**
-   * Persistent cache store in the file system.
-   * @todo
-   */
-  persistentCache?: boolean
+  bundler?: 'esbuild' | Bundler
 
   /**
    * Prebundle also the dependencies of the entry.
@@ -25,6 +19,12 @@ export interface CommonPrebundleEntryOptions {
    * @default false
    */
   bundleDependencies?: boolean
+
+  /**
+   * Persistent cache store in the file system.
+   * @todo also support custom hashing
+   */
+  persistentCache?: boolean
 }
 
 export interface PrebundleEntryOptions extends CommonPrebundleEntryOptions {
