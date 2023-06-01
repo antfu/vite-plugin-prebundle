@@ -1,10 +1,10 @@
-import { resolve as pResolve } from 'node:path'
+import path from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
 import { build } from 'esbuild'
 
 export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
   let config: ResolvedConfig
-  let resolvedIds: Map<string, PrebundleEntry>
+  let entriesMap: Map<string, PrebundleEntryData>
   const entries = normalizeEntries(options.entries)
 
   return {
@@ -13,17 +13,30 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       config = _config
     },
     buildStart() {
-      resolvedIds = new Map(entries.map((entry) => {
-        return [pResolve(config.root, entry.filepath), entry] as const
+      entriesMap = new Map(entries.map((entry) => {
+        const resolved = path.resolve(config.root, entry.filepath)
+        return [resolved, { options: entry, resolvedFilepath: resolved }] as const
       }))
     },
+    handleHotUpdate(ctx) {
+      const matched = Array.from(entriesMap.values())
+        .filter((data) => {
+          return data.inputs?.includes(ctx.file)
+        })
+      if (!matched.length)
+        return
+      return matched.flatMap(data => [...ctx.server.moduleGraph.getModulesByFile(data.resolvedFilepath) || []])
+    },
     async load(id) {
-      if (!resolvedIds.has(id))
+      if (!entriesMap.has(id))
         return
 
+      const data = entriesMap.get(id)!
       const {
         bundler = 'esbuild',
-      } = resolvedIds.get(id)!
+      } = data.options
+
+      // TODO: cache
 
       if (bundler !== 'esbuild')
         throw new Error(`Bundler ${bundler} is not supported yet.`)
@@ -34,14 +47,29 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
         write: false,
         format: 'esm',
         bundle: true,
+        metafile: true,
+        sourceRoot: config.root,
+        // TODO: we should externalize deps, as they should be handled by Vite
       })
+
+      const code = result.outputFiles[0].text
+
+      const inputs = Object.keys(result.metafile!.inputs)
+        .filter(i => !i.match(/[\/\\]node_modules[\/\\]/))
+        .map(i => path.resolve(config.root, i))
+
+      data.inputs = inputs
+      data.cache = {
+        code,
+        time: Date.now(),
+      }
 
       return result.outputFiles[0].text
     },
   }
 }
 
-function normalizeEntries(entries: (PrebundleEntry | string)[]): PrebundleEntry[] {
+function normalizeEntries(entries: (PrebundleEntryOptions | string)[]): PrebundleEntryOptions[] {
   return entries.map((entry) => {
     if (typeof entry === 'string')
       return { filepath: entry }
@@ -50,10 +78,10 @@ function normalizeEntries(entries: (PrebundleEntry | string)[]): PrebundleEntry[
 }
 
 export interface PrebundleOptions {
-  entries: (PrebundleEntry | string)[]
+  entries: (PrebundleEntryOptions | string)[]
 }
 
-export interface PrebundleEntry {
+export interface PrebundleEntryOptions {
   filepath: string
   /**
    * @default 'esbuild'
@@ -64,4 +92,16 @@ export interface PrebundleEntry {
    * @todo
    */
   cache?: boolean
+}
+
+export interface PrebundleEntryData {
+  resolvedFilepath: string
+  options: PrebundleEntryOptions
+  inputs?: string[]
+  cache?: PrebundleEntryCache
+}
+
+export interface PrebundleEntryCache {
+  code: string
+  time: number
 }

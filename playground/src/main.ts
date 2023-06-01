@@ -1,4 +1,4 @@
-import { join } from './submodule'
+import { hello, join } from './submodule'
 
 const end = Date.now()
 
@@ -8,4 +8,7 @@ declare global {
   }
 }
 
-document.getElementById('app')!.innerHTML = join(['time to load:', end - window.__START__, 'ms'], ' ')
+document.getElementById('app')!.innerHTML = [
+  join(['time to load:', end - window.__START__, 'ms'], ' '),
+  hello(),
+].join('<br>')
