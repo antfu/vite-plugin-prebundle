@@ -12,3 +12,5 @@ document.getElementById('app')!.innerHTML = [
   join(['time to load:', end - window.__START__, 'ms'], ' '),
   hello(),
 ].join('<br>')
+
+import('./submodule/hello')

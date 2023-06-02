@@ -25,6 +25,11 @@ export interface CommonPrebundleEntryOptions {
    * @todo also support custom hashing
    */
   persistentCache?: boolean
+
+  /**
+   * Warn if prebundled entires are duplicated.
+   */
+  warnOnDuplicate?: boolean
 }
 
 export interface PrebundleEntryOptions extends CommonPrebundleEntryOptions {

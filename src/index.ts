@@ -15,6 +15,10 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
   let config: ResolvedConfig
   let entriesMap: Map<string, PrebundleEntryData>
 
+  const {
+    warnOnDuplicate = true,
+  } = options
+
   return {
     name: NAME,
     apply: 'serve',
@@ -40,8 +44,14 @@ export default function PrebundlePlugin(options: PrebundleOptions): Plugin {
       return matched.flatMap(data => [...ctx.server.moduleGraph.getModulesByFile(data.resolvedFilepath) || []])
     },
     async load(id) {
-      if (!entriesMap.has(id))
+      if (!entriesMap.has(id)) {
+        if (warnOnDuplicate) {
+          const entry = Array.from(entriesMap.values()).find(i => i.cache?.bundledFiles?.includes(id))
+          if (entry)
+            this.warn(`${id} is prebundled, but been imported again`)
+        }
         return
+      }
 
       const entry = entriesMap.get(id)!
       const {
