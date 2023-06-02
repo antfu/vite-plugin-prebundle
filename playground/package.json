@@ -10,9 +10,11 @@
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.7",
+    "@vitejs/plugin-vue": "^4.2.3",
     "lodash-es": "^4.17.21",
     "typescript": "^5.0.4",
     "vite": "^4.3.9",
-    "vite-plugin-inspect": "^0.7.28"
+    "vite-plugin-inspect": "^0.7.28",
+    "vue": "^3.3.4"
   }
 }

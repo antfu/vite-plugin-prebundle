@@ -1,4 +1,6 @@
-import type { ResolvedConfig } from 'vite'
+import type { ResolvedConfig, UserConfig } from 'vite'
+import type { SourceMap } from 'rollup'
+import type { BuildOptions } from 'esbuild'
 
 export interface PrebundleOptions extends CommonPrebundleEntryOptions {
   entries: (PrebundleEntryOptions | string)[]
@@ -11,7 +13,23 @@ export interface CommonPrebundleEntryOptions {
    * @default 'esbuild'
    * @todo support rollup/vite bundler that reuses the existing plugins
    */
-  bundler?: 'esbuild' | Bundler
+  bundler?: 'esbuild' | 'vite' | Bundler
+
+  /**
+   * Vite options for prebundling.
+   *
+   * By default the main Vite config will be used.
+   * When explicitly provided, the main Vite config will be ignored.
+   */
+  viteOptions?: UserConfig | null
+
+  /**
+   * esbuild options for prebundling.
+   *
+   * By default the `optimizeDeps.esbuildOptions` will be used.
+   * When explicitly provided, the default esbuild options will be ignored.
+   */
+  esbuildOptions?: BuildOptions | null
 
   /**
    * Prebundle also the dependencies of the entry.
@@ -27,9 +45,25 @@ export interface CommonPrebundleEntryOptions {
   persistentCache?: boolean
 
   /**
-   * Warn if prebundled entires are duplicated.
+   * Generate sourcemap.
+   *
+   * @default true
    */
-  warnOnDuplicate?: boolean
+  sourcemap?: boolean
+
+  /**
+   * Warn if prebundled entires are duplicated.
+   *
+   * @default 'warn'
+   */
+  duplicateDetection?: 'warn' | 'error' | false
+
+  /**
+   * Prebundle the entries when module has been imported.
+   *
+   * @default false
+   */
+  lazy?: boolean
 }
 
 export interface PrebundleEntryOptions extends CommonPrebundleEntryOptions {
@@ -41,8 +75,12 @@ export interface PrebundleEntryOptions extends CommonPrebundleEntryOptions {
 
 export interface PrebundleEntryData {
   resolvedFilepath: string
-  options: PrebundleEntryOptions
+  options: Required<PrebundleEntryOptions>
   cache?: PrebundleEntryCache
+  /**
+   * The promise of the existing bundling process.
+   */
+  promise?: Promise<void>
 }
 
 export interface PrebundleEntryCache extends BundlerResult {
@@ -51,12 +89,20 @@ export interface PrebundleEntryCache extends BundlerResult {
 
 export interface BundlerContext {
   viteConfig: ResolvedConfig
+  viteUserConfig: UserConfig
   options: PrebundleOptions
   entry: PrebundleEntryData
 }
 
 export interface BundlerResult {
+  /**
+   * The bundled code.
+   */
   code: string
+  /**
+   * Source map.
+   */
+  map?: SourceMap | null
   /**
    * List of file paths that are bundled.
    *

@@ -3,19 +3,16 @@ import { build } from 'esbuild'
 import type { Bundler } from '../types'
 
 export const esbuildBundler: Bundler = async ({ viteConfig, entry }) => {
-  const {
-    bundleDependencies = false,
-  } = entry.options
-
   const result = await build({
-    ...viteConfig?.optimizeDeps.esbuildOptions,
-    entryPoints: [entry.resolvedFilepath],
-    write: false,
-    format: 'esm',
+    ...(entry.options.esbuildOptions || viteConfig?.optimizeDeps.esbuildOptions),
     bundle: true,
     metafile: true,
+    sourcemap: entry.options.sourcemap,
     sourceRoot: viteConfig.root,
-    packages: bundleDependencies ? undefined : 'external',
+    packages: entry.options.bundleDependencies ? undefined : 'external',
+    entryPoints: [entry.resolvedFilepath],
+    format: 'esm',
+    write: false,
   })
 
   const code = result.outputFiles[0].text
