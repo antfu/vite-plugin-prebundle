@@ -31,7 +31,7 @@ export default defineConfig({
         './src/submodule1/index.ts',
         {
           filepath: './src/submodule2/index.ts',
-          builder: 'vite',
+          bundler: 'vite',
           lazy: true,
           // ...
         }
